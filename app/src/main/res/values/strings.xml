@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ContextHub</string>
+
+    <!-- Auth -->
+    <string name="welcome_title">ContextHub</string>
+    <string name="welcome_subtitle">Умный ассистент для вашего дома\nс программируемыми зонами и Social Touch</string>
+    <string name="welcome_start">Начать</string>
+    <string name="login_title">Вход</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Пароль</string>
+    <string name="login_button">Войти</string>
+    <string name="login_no_account">Нет аккаунта?</string>
+    <string name="login_register_link">Зарегистрироваться</string>
+    <string name="register_title">Регистрация</string>
+    <string name="register_name">Имя</string>
+    <string name="register_email">Email</string>
+    <string name="register_password">Пароль</string>
+    <string name="register_confirm">Подтвердите пароль</string>
+    <string name="register_button">Создать аккаунт</string>
+    <string name="register_have_account">Уже есть аккаунт?</string>
+    <string name="register_login_link">Войти</string>
+
+    <!-- Onboarding -->
+    <string name="scan_title">Поиск устройства</string>
+    <string name="scan_status">Сканирование Wi-Fi сетей ESP32…</string>
+    <string name="scan_retry">Повторить поиск</string>
+    <string name="scan_manual">Ввести IP вручную</string>
+    <string name="wifi_title">Настройка Wi-Fi</string>
+    <string name="wifi_network">Выберите Wi-Fi сеть</string>
+    <string name="wifi_password">Пароль сети</string>
+    <string name="wifi_connect">Подключить</string>
+    <string name="connection_title">Подключение…</string>
+    <string name="connection_status">Настройка устройства…</string>
+    <string name="connection_success">Устройство подключено!</string>
+    <string name="connection_error">Ошибка подключения</string>
+    <string name="connection_continue">Продолжить</string>
+
+    <!-- Main tabs -->
+    <string name="tab_zones">Зоны</string>
+    <string name="tab_social">Социальное</string>
+    <string name="tab_settings">Настройки</string>
+
+    <!-- Zones -->
+    <string name="zones_empty">Нет настроенных зон.\nНажмите + чтобы добавить зону</string>
+    <string name="zones_add">Добавить зону</string>
+    <string name="zones_save">Сохранить зону</string>
+    <string name="zones_delete">Удалить зону</string>
+    <string name="zones_name_hint">Название зоны</string>
+    <string name="zones_trigger_enter">Вход в зону</string>
+    <string name="zones_trigger_exit">Выход из зоны</string>
+    <string name="zones_trigger_dwell">Присутствие &gt; %d мин</string>
+    <string name="zones_draw_instruction">Нарисуйте прямоугольник на видео, чтобы задать зону</string>
+    <string name="zones_select_device">Выберите устройство SmartThings</string>
+    <string name="zones_no_device">Нет связанных устройств</string>
+    <string name="zones_undo">Отменить</string>
+    <string name="zones_clear">Очистить</string>
+
+    <!-- Social -->
+    <string name="social_empty">Нет друзей.\nДобавьте друга по QR-коду или ID</string>
+    <string name="social_add_friend">Добавить друга</string>
+    <string name="social_scan_qr">Сканировать QR-код</string>
+    <string name="social_show_qr">Мой QR-код</string>
+    <string name="social_enter_id">Ввести ID друга</string>
+    <string name="social_touch">Отправить Touch</string>
+    <string name="social_touch_sent">Touch отправлен!</string>
+    <string name="social_touch_received">Получен Touch от %s</string>
+    <string name="social_online">В сети</string>
+    <string name="social_offline">Не в сети</string>
+
+    <!-- Settings -->
+    <string name="settings_general">Общие</string>
+    <string name="settings_account">Аккаунт</string>
+    <string name="settings_device">Устройство</string>
+    <string name="settings_device_name">Имя устройства</string>
+    <string name="settings_mqtt_broker">MQTT Broker</string>
+    <string name="settings_mqtt_port">Порт</string>
+    <string name="settings_mqtt_connected">Подключено</string>
+    <string name="settings_mqtt_disconnected">Отключено</string>
+    <string name="settings_server">Сервер</string>
+    <string name="settings_server_endpoint">Endpoint API</string>
+    <string name="settings_voice">Голос</string>
+    <string name="settings_voice_wake">Wake-word активация</string>
+    <string name="settings_notifications">Уведомления</string>
+    <string name="settings_notif_zones">События зон</string>
+    <string name="settings_notif_social">Social Touch</string>
+    <string name="settings_logout">Выйти</string>
+    <string name="settings_logout_confirm">Вы уверены, что хотите выйти?</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="delete">Удалить</string>
+    <string name="retry">Повторить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="error_unknown">Произошла неизвестная ошибка</string>
+    <string name="error_network">Ошибка сети</string>
+    <string name="camera_permission">Для работы зон необходим доступ к камере</string>
+    <string name="location_permission">Для сканирования Wi-Fi сетей необходимо разрешение на местоположение</string>
+</resources>

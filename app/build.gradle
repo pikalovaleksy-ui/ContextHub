@@ -1,0 +1,109 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.ksp)
+    alias(libs.plugins.hilt)
+}
+
+android {
+    namespace 'com.example.project'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.example.project"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    // Core
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.activity
+    implementation libs.androidx.fragment.ktx
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.androidx.preference
+
+    // Material
+    implementation libs.material
+
+    // Hilt
+    implementation libs.hilt.android
+    ksp libs.hilt.compiler
+    implementation libs.hilt.navigation.fragment
+
+    // Room
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    ksp libs.room.compiler
+
+    // Navigation
+    implementation libs.navigation.fragment.ktx
+    implementation libs.navigation.ui.ktx
+
+    // CameraX
+    implementation libs.camerax.core
+    implementation libs.camerax.camera2
+    implementation libs.camerax.lifecycle
+    implementation libs.camerax.view
+
+    // Network
+    implementation libs.retrofit
+    implementation libs.retrofit.converter.moshi
+    implementation libs.okhttp
+    implementation libs.okhttp.logging
+    implementation libs.moshi
+    implementation libs.moshi.kotlin
+    ksp libs.moshi.codegen
+
+    // MQTT
+    implementation libs.paho.service
+
+    // Charts
+    implementation libs.mpandroidchart
+
+    // QR
+    implementation libs.zxing.core
+    implementation libs.mlkit.barcode
+
+    // Coroutines
+    implementation libs.coroutines.core
+    implementation libs.coroutines.android
+
+    // Lifecycle
+    implementation libs.lifecycle.viewmodel.ktx
+    implementation libs.lifecycle.livedata.ktx
+    implementation libs.lifecycle.runtime.ktx
+    implementation libs.lifecycle.common.java8
+
+    // Security
+    implementation libs.security.crypto
+
+    // Test
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.espresso.core
+}

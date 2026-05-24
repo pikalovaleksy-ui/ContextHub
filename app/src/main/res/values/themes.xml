@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.ContextHub" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/purple_primary</item>
+        <item name="colorOnPrimary">@color/on_purple_primary</item>
+        <item name="colorPrimaryContainer">@color/purple_container</item>
+        <item name="colorOnPrimaryContainer">@color/purple_dark</item>
+        <item name="colorSecondary">@color/purple_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/gray_900</item>
+        <item name="colorError">@color/red_accent</item>
+        <item name="android:statusBarColor">@color/purple_primary</item>
+        <item name="android:navigationBarColor">@color/white</item>
+    </style>
+
+    <style name="Theme.ContextHub.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/purple_light</item>
+        <item name="colorOnPrimary">@color/purple_dark</item>
+        <item name="colorPrimaryContainer">@color/purple_dark</item>
+        <item name="colorOnPrimaryContainer">@color/purple_light</item>
+        <item name="colorSecondary">@color/purple_light</item>
+        <item name="colorOnSecondary">@color/purple_dark</item>
+        <item name="colorSurface">@color/gray_900</item>
+        <item name="colorOnSurface">@color/gray_100</item>
+        <item name="colorError">@color/red_accent</item>
+        <item name="android:statusBarColor">@color/gray_900</item>
+        <item name="android:navigationBarColor">@color/gray_900</item>
+    </style>
+</resources>
