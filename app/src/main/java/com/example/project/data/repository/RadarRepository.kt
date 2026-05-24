@@ -76,9 +76,12 @@ class RadarRepository @Inject constructor(
     }
 
     fun unsubscribeFromRadar() {
-        if (!subscribed) return
-        mqttManager.unsubscribe(MqttTopics.LD2450_TOPIC)
-        subscribed = false
+        if (subscribed) {
+            try {
+                mqttManager.unsubscribe(MqttTopics.LD2450_TOPIC)
+                subscribed = false
+            } catch (_: Exception) {}
+        }
     }
 
     suspend fun saveZoneLocally(zone: Zone) {

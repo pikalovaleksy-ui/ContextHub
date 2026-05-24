@@ -85,7 +85,7 @@ class MqttManager @Inject constructor() {
         _connectionState.value = false
         executor.execute {
             try {
-                client?.disconnect()
+                client?.disconnectForcibly(1000, 0)
                 client?.close()
             } catch (_: Exception) {}
             client = null

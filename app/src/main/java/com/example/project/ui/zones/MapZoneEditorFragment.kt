@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -23,6 +24,7 @@ class MapZoneEditorFragment : Fragment() {
     private var _binding: FragmentMapZoneEditorBinding? = null
     private val binding get() = _binding!!
     private val viewModel: MapZoneEditorViewModel by viewModels()
+    private var onBackPressedCallback: OnBackPressedCallback? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,13 +38,7 @@ class MapZoneEditorFragment : Fragment() {
     private fun safeNavigateBack() {
         viewModel.disconnectFromRadar()
         try {
-            val navController = findNavController()
-            if (!navController.popBackStack()) {
-                // Back stack empty — идём напрямую на mainFragment
-                navController.navigate(com.example.project.R.id.mainFragment) {
-                    popUpTo(0) { inclusive = true }
-                }
-            }
+            findNavController().popBackStack(com.example.project.R.id.mainFragment, false)
         } catch (e: Exception) {
             android.util.Log.e("ZoneEditor", "Nav error", e)
         }
@@ -52,14 +48,12 @@ class MapZoneEditorFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         var isProgrammaticChange = false
 
-        requireActivity().onBackPressedDispatcher.addCallback(
-            viewLifecycleOwner,
-            object : androidx.activity.OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() {
-                    safeNavigateBack()
-                }
+        onBackPressedCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                safeNavigateBack()
             }
-        )
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, onBackPressedCallback!!)
 
         with(binding) {
             mapView.isEditMode = true
@@ -165,6 +159,9 @@ class MapZoneEditorFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        onBackPressedCallback?.remove()
+        onBackPressedCallback = null
+        viewModel.disconnectFromRadar()
         super.onDestroyView()
         _binding = null
     }

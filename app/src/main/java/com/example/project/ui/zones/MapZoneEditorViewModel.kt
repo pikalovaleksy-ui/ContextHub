@@ -56,6 +56,7 @@ class MapZoneEditorViewModel @Inject constructor(
                             saveSuccess = true,
                             statusText = "Зона сохранена!"
                         )
+                        radarRepository.clearAddZoneResult()
                     }
                     is AddZoneResult.Error -> {
                         _uiState.value = current.copy(
@@ -160,6 +161,13 @@ class MapZoneEditorViewModel @Inject constructor(
             _uiState.value = current.copy(
                 saveError = "Введите название зоны",
                 statusText = "Ошибка: введите название зоны"
+            )
+            return
+        }
+        if (!name.matches(Regex("^[a-zA-Z0-9_]+$"))) {
+            _uiState.value = current.copy(
+                saveError = "Название зоны должно содержать только латинские символы",
+                statusText = "Ошибка: используйте только a-z, A-Z, 0-9, _"
             )
             return
         }

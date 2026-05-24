@@ -112,7 +112,13 @@
         android:id="@+id/zoneEditorFragment"
         android:name="com.example.project.ui.zones.MapZoneEditorFragment"
         android:label="Zone Editor"
-        tools:layout="@layout/fragment_map_zone_editor" />
+        tools:layout="@layout/fragment_map_zone_editor">
+        <action
+            android:id="@+id/action_zoneEditor_to_main"
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/mainFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 
     <!-- Add Friend -->
     <fragment
@@ -127,4 +133,5 @@
         android:name="com.example.project.ui.settings.SettingsFragment"
         android:label="Settings"
         tools:layout="@layout/fragment_settings" />
+
 </navigation>

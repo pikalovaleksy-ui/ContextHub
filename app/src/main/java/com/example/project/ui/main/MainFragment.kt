@@ -39,7 +39,7 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        if (savedInstanceState == null) {
+        if (childFragmentManager.findFragmentByTag("zones") == null) {
             childFragmentManager.beginTransaction()
                 .add(R.id.tabContainer, zonesFragment, "zones")
                 .add(R.id.tabContainer, socialFragment, "social")
@@ -48,6 +48,7 @@ class MainFragment : Fragment() {
                 .hide(settingsFragment)
                 .commit()
         }
+        showTab(currentTab)
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
