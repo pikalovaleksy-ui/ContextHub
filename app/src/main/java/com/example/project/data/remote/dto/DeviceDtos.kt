@@ -28,4 +28,6 @@ data class SmartThingsDeviceDto(
     @Json(name = "deviceId") val deviceId: String,
     @Json(name = "name") val name: String,
     @Json(name = "capabilities") val capabilities: List<String> = emptyList()
-)
+) {
+    fun capabilitiesSummary(): String = capabilities.joinToString(", ")
+}

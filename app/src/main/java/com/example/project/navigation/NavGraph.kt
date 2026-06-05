@@ -11,6 +11,10 @@ object NavRoutes {
     const val ZONE_EDITOR = "zone_editor/{zoneId}"
     const val ADD_FRIEND = "add_friend"
     const val SETTINGS = "settings"
+    const val ROOM_EDITOR = "room_editor/{roomId}"
+    const val SMART_THINGS_SETUP = "smart_things_setup/{zoneId}/{roomId}"
 
     fun zoneEditor(zoneId: String? = null) = "zone_editor/$zoneId"
+    fun roomEditor(roomId: String? = null) = "room_editor/$roomId"
+    fun smartThingsSetup(zoneId: String? = null, roomId: String? = null) = "smart_things_setup/$zoneId/$roomId"
 }

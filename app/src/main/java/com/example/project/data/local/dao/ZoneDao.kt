@@ -17,6 +17,12 @@ interface ZoneDao {
     @Query("SELECT * FROM zones WHERE id = :zoneId")
     suspend fun getZoneById(zoneId: String): ZoneEntity?
 
+    @Query("SELECT * FROM zones WHERE roomId = :roomId ORDER BY name ASC")
+    fun getZonesByRoomId(roomId: String): Flow<List<ZoneEntity>>
+
+    @Query("SELECT * FROM zones WHERE roomId = :roomId")
+    suspend fun getZonesByRoomIdSync(roomId: String): List<ZoneEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertZone(zone: ZoneEntity)
 
@@ -28,6 +34,9 @@ interface ZoneDao {
 
     @Query("DELETE FROM zones WHERE id = :zoneId")
     suspend fun deleteZoneById(zoneId: String)
+
+    @Query("DELETE FROM zones WHERE roomId = :roomId")
+    suspend fun deleteZonesByRoomId(roomId: String)
 
     @Query("SELECT * FROM zones WHERE enabled = 1")
     suspend fun getEnabledZones(): List<ZoneEntity>

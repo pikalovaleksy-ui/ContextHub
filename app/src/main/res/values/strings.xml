@@ -37,11 +37,12 @@
     <string name="connection_continue">Продолжить</string>
 
     <!-- Main tabs -->
-    <string name="tab_zones">Зоны</string>
+    <string name="tab_zones">Комнаты</string>
+    <string name="tab_rooms">Комнаты</string>
     <string name="tab_social">Социальное</string>
     <string name="tab_settings">Настройки</string>
 
-    <!-- Zones -->
+    <!-- Rooms / Zones -->
     <string name="zones_empty">Нет настроенных зон.\nНажмите + чтобы добавить зону</string>
     <string name="zones_add">Добавить зону</string>
     <string name="zones_save">Сохранить зону</string>
@@ -55,6 +56,9 @@
     <string name="zones_no_device">Нет связанных устройств</string>
     <string name="zones_undo">Отменить</string>
     <string name="zones_clear">Очистить</string>
+    <string name="rooms_empty">Нет комнат.\nНажмите + чтобы добавить комнату</string>
+    <string name="rooms_add">Добавить комнату</string>
+    <string name="rooms_edit">Редактировать</string>
 
     <!-- Social -->
     <string name="social_empty">Нет друзей.\nДобавьте друга по QR-коду или ID</string>

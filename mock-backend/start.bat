@@ -11,11 +11,10 @@ if errorlevel 1 (
 
 echo Starting services...
 start "API Server" cmd /k "cd /d "%~dp0api_server" && py main.py"
-timeout /t 2 /nobreak >nul
-start "Radar Simulator" cmd /k "cd /d "%~dp0radar_simulator" && py simulator.py"
 
 echo.
 echo ========================================
-echo   Both services are running!
+echo   Mock Server is running!
+echo   Web UI Simulator: http://localhost:8080/simulator
 echo ========================================
 pause

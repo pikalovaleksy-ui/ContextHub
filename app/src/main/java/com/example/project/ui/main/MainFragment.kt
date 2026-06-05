@@ -5,11 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.viewModels
 import com.example.project.R
 import com.example.project.databinding.FragmentMainBinding
-import com.example.project.ui.zones.ZonesFragment
+import com.example.project.ui.rooms.RoomsFragment
 import com.example.project.ui.social.SocialFragment
 import com.example.project.ui.settings.SettingsFragment
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,7 +22,7 @@ class MainFragment : Fragment() {
 
     private var currentTab = 0
 
-    private val zonesFragment by lazy { ZonesFragment() }
+    private val roomsFragment by lazy { RoomsFragment() }
     private val socialFragment by lazy { SocialFragment() }
     private val settingsFragment by lazy { SettingsFragment() }
 
@@ -39,9 +38,9 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        if (childFragmentManager.findFragmentByTag("zones") == null) {
+        if (childFragmentManager.findFragmentByTag("rooms") == null) {
             childFragmentManager.beginTransaction()
-                .add(R.id.tabContainer, zonesFragment, "zones")
+                .add(R.id.tabContainer, roomsFragment, "rooms")
                 .add(R.id.tabContainer, socialFragment, "social")
                 .add(R.id.tabContainer, settingsFragment, "settings")
                 .hide(socialFragment)
@@ -64,7 +63,7 @@ class MainFragment : Fragment() {
         if (currentTab == index) return
         currentTab = index
 
-        val fragments = listOf(zonesFragment, socialFragment, settingsFragment)
+        val fragments = listOf(roomsFragment, socialFragment, settingsFragment)
         val tx = childFragmentManager.beginTransaction()
         fragments.forEachIndexed { i, f ->
             if (i == index) tx.show(f) else tx.hide(f)

@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.project.data.local.AppDatabase
 import com.example.project.data.local.dao.DeviceDao
 import com.example.project.data.local.dao.FriendDao
+import com.example.project.data.local.dao.RoomDao
 import com.example.project.data.local.dao.ZoneDao
 import dagger.Module
 import dagger.Provides
@@ -35,4 +36,7 @@ object DatabaseModule {
 
     @Provides
     fun provideFriendDao(db: AppDatabase): FriendDao = db.friendDao()
+
+    @Provides
+    fun provideRoomDao(db: AppDatabase): RoomDao = db.roomDao()
 }

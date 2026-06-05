@@ -95,6 +95,9 @@
             android:id="@+id/action_main_to_zoneEditor"
             app:destination="@id/zoneEditorFragment" />
         <action
+            android:id="@+id/action_main_to_roomEditor"
+            app:destination="@id/roomEditorFragment" />
+        <action
             android:id="@+id/action_main_to_addFriend"
             app:destination="@id/addFriendFragment" />
         <action
@@ -118,6 +121,31 @@
             app:destination="@id/mainFragment"
             app:popUpTo="@id/mainFragment"
             app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- Room Editor -->
+    <fragment
+        android:id="@+id/roomEditorFragment"
+        android:name="com.example.project.ui.rooms.RoomEditorFragment"
+        android:label="Room Editor"
+        tools:layout="@layout/fragment_room_editor">
+        <action
+            android:id="@+id/action_roomEditor_to_smartThingsSetup"
+            app:destination="@id/smartThingsSetupFragment" />
+    </fragment>
+
+    <!-- SmartThings Setup -->
+    <fragment
+        android:id="@+id/smartThingsSetupFragment"
+        android:name="com.example.project.ui.smartthings.SmartThingsSetupFragment"
+        android:label="SmartThings Setup"
+        tools:layout="@layout/fragment_smartthings_setup">
+        <argument
+            android:name="zoneId"
+            app:argType="string" />
+        <argument
+            android:name="roomId"
+            app:argType="string" />
     </fragment>
 
     <!-- Add Friend -->

@@ -16,3 +16,10 @@ data class ZoneDto(
     @Json(name = "smartThingsDeviceId") val smartThingsDeviceId: String? = null,
     @Json(name = "smartThingsAction") val smartThingsAction: String? = null
 )
+
+@JsonClass(generateAdapter = true)
+data class SmartThingsBindingDto(
+    @Json(name = "deviceId") val deviceId: String,
+    @Json(name = "action") val action: String,
+    @Json(name = "extraParams") val extraParams: Map<String, String> = emptyMap()
+)

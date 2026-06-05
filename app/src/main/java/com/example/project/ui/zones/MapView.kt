@@ -13,7 +13,6 @@ import android.view.View
 import com.example.project.model.Target
 import com.example.project.model.Vertex
 import com.example.project.model.Zone
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -62,15 +61,6 @@ class MapView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = 2f
     }
-    private val zoneFillPaint = Paint().apply {
-        color = Color.argb(50, 103, 80, 164)
-        style = Paint.Style.FILL
-    }
-    private val zoneStrokePaint = Paint().apply {
-        color = Color.argb(200, 103, 80, 164)
-        style = Paint.Style.STROKE
-        strokeWidth = 3f
-    }
     private val editingLinePaint = Paint().apply {
         color = Color.argb(200, 76, 175, 80)
         style = Paint.Style.STROKE
@@ -110,7 +100,6 @@ class MapView @JvmOverloads constructor(
         isAntiAlias = true
         isFakeBoldText = true
     }
-
     // Data
     var targets: List<Target> = emptyList()
         set(value) { field = value; invalidate() }
@@ -119,10 +108,16 @@ class MapView @JvmOverloads constructor(
     var editingVertices: List<Vertex> = emptyList()
         set(value) { field = value; invalidate() }
     var editingZoneName: String = ""
+    var editingZoneColor: Int = 0xFF6750A4.toInt()
     var targetLabels: Map<Int, String> = emptyMap()
     var onVertexAdded: ((Vertex) -> Unit)? = null
     var onMapTap: ((Float, Float) -> Unit)? = null
+    var onZoneTapped: ((Zone?) -> Unit)? = null
+    var selectedZoneId: String? = null
+        set(value) { field = value; invalidate() }
     var isEditMode: Boolean = false
+    var isInteractive: Boolean = true
+    var showGridCoordinates: Boolean = true
     var statusText: String = ""
         set(value) { field = value; invalidate() }
 
@@ -138,6 +133,7 @@ class MapView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!isInteractive) return false
         scaleDetector.onTouchEvent(event)
         when (event.action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
@@ -160,9 +156,14 @@ class MapView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 if (!isDragging && !scaleDetector.isInProgress) {
                     val world = screenToWorld(event.x, event.y)
-                    if (isEditMode) {
+                    val tappedZone = findZoneAt(world.x.toInt(), world.y.toInt())
+                    if (tappedZone != null) {
+                        onZoneTapped?.invoke(tappedZone)
+                    } else if (isEditMode && selectedZoneId != null) {
+                        // Tap on empty space while zone selected → deselect
+                        onZoneTapped?.invoke(null)
+                    } else if (isEditMode) {
                         val v = Vertex(world.x.toInt(), world.y.toInt())
-                        editingVertices = editingVertices + v
                         onVertexAdded?.invoke(v)
                     } else {
                         onMapTap?.invoke(world.x, world.y)
@@ -172,6 +173,34 @@ class MapView @JvmOverloads constructor(
             }
         }
         return true
+    }
+
+    private fun findZoneAt(x: Int, y: Int): Zone? {
+        for (zone in savedZones) {
+            if (zone.vertices.size < 3) continue
+            if (isPointInPolygon(x, y, zone.vertices)) {
+                return zone
+            }
+        }
+        return null
+    }
+
+    private fun isPointInPolygon(px: Int, py: Int, vertices: List<Vertex>): Boolean {
+        var inside = false
+        var j = vertices.size - 1
+        for (i in vertices.indices) {
+            val xi = vertices[i].x
+            val yi = vertices[i].y
+            val xj = vertices[j].x
+            val yj = vertices[j].y
+            if ((yi > py) != (yj > py) &&
+                px < (xj - xi) * (py - yi) / (yj - yi) + xi
+            ) {
+                inside = !inside
+            }
+            j = i
+        }
+        return inside
     }
 
     private fun worldToScreen(worldX: Float, worldY: Float): PointF {
@@ -193,7 +222,7 @@ class MapView @JvmOverloads constructor(
 
         drawGrid(canvas, cx, cy)
         drawSavedZones(canvas)
-        if (isEditMode && editingVertices.isNotEmpty()) {
+        if (editingVertices.isNotEmpty()) {
             drawEditingZone(canvas)
         }
         drawTargets(canvas, cx, cy)
@@ -208,7 +237,7 @@ class MapView @JvmOverloads constructor(
     }
 
     private fun drawGrid(canvas: Canvas, cx: Float, cy: Float) {
-        val step = 500  // 500mm grid
+        val step = 500
         val stepPx = step * scale
         if (stepPx < 10f) return
         val halfW = (width / 2f / stepPx + 2).toInt()
@@ -226,14 +255,16 @@ class MapView @JvmOverloads constructor(
         canvas.drawLine(0f, cy, width.toFloat(), cy, axisPaint)
         canvas.drawLine(cx, 0f, cx, height.toFloat(), axisPaint)
 
-        for (i in -halfW..halfW) {
-            val x = cx + i * stepPx
-            canvas.drawText("${i * 500}mm", x + 4f, cy + 20f, gridTextPaint)
-        }
-        for (i in -halfH..halfH) {
-            if (i == 0) continue
-            val y = cy + i * stepPx
-            canvas.drawText("${i * 500}mm", cx + 4f, y - 4f, gridTextPaint)
+        if (showGridCoordinates) {
+            for (i in -halfW..halfW) {
+                val x = cx + i * stepPx
+                canvas.drawText("${i * 500}mm", x + 4f, cy + 20f, gridTextPaint)
+            }
+            for (i in -halfH..halfH) {
+                if (i == 0) continue
+                val y = cy + i * stepPx
+                canvas.drawText("${i * 500}mm", cx + 4f, y - 4f, gridTextPaint)
+            }
         }
     }
 
@@ -253,7 +284,6 @@ class MapView @JvmOverloads constructor(
             val vStr = "${t.speed}мм/c"
             canvas.drawText(label, sp.x + 20f, sp.y - 6f, coordsTextPaint)
             canvas.drawText(vStr, sp.x + 20f, sp.y + 18f, coordsTextPaint)
-
             canvas.drawText(
                 "(${t.x}, ${t.y})",
                 sp.x - 30f,
@@ -266,6 +296,20 @@ class MapView @JvmOverloads constructor(
     private fun drawSavedZones(canvas: Canvas) {
         for (zone in savedZones) {
             if (zone.vertices.size < 3) continue
+            val zoneColor = if (zone.color != 0) zone.color else 0xFF6750A4.toInt()
+            val isActive = zone.enabled
+            val fillAlpha = if (isActive) 60 else 20
+            val strokeAlpha = if (isActive) 200 else 80
+            val fillPaint = Paint().apply {
+                this.color = Color.argb(fillAlpha, Color.red(zoneColor), Color.green(zoneColor), Color.blue(zoneColor))
+                style = Paint.Style.FILL
+            }
+            val strokePaint = Paint().apply {
+                this.color = Color.argb(strokeAlpha, Color.red(zoneColor), Color.green(zoneColor), Color.blue(zoneColor))
+                style = Paint.Style.STROKE
+                strokeWidth = 3f
+            }
+
             val path = Path()
             val first = worldToScreen(
                 zone.vertices.first().x.toFloat(),
@@ -280,9 +324,32 @@ class MapView @JvmOverloads constructor(
                 path.lineTo(v.x, v.y)
             }
             path.close()
-            canvas.drawPath(path, zoneFillPaint)
-            canvas.drawPath(path, zoneStrokePaint)
 
+            // Selection: highlight with zone color
+            val isSelected = zone.id == selectedZoneId
+            if (isSelected) {
+                canvas.drawPath(path, Paint().apply {
+                    color = Color.argb(255, Color.red(zoneColor), Color.green(zoneColor), Color.blue(zoneColor))
+                    style = Paint.Style.STROKE
+                    strokeWidth = 8f
+                    isAntiAlias = true
+                })
+                canvas.drawPath(path, Paint().apply {
+                    color = Color.argb(120, Color.red(zoneColor), Color.green(zoneColor), Color.blue(zoneColor))
+                    style = Paint.Style.FILL
+                    isAntiAlias = true
+                })
+            }
+
+            canvas.drawPath(path, fillPaint)
+            canvas.drawPath(path, strokePaint)
+
+            val labelBgColor = if (isActive) Color.argb(180, Color.red(zoneColor), Color.green(zoneColor), Color.blue(zoneColor))
+                              else Color.argb(100, Color.red(zoneColor), Color.green(zoneColor), Color.blue(zoneColor))
+            val bgPaint = Paint().apply {
+                this.color = labelBgColor
+                style = Paint.Style.FILL
+            }
             val labelPos = polygonCenter(zone.vertices)
             val lp = worldToScreen(labelPos.first, labelPos.second)
             val textW = labelPaint.measureText(zone.name)
@@ -292,7 +359,7 @@ class MapView @JvmOverloads constructor(
                 lp.x + textW / 2f + 8f,
                 lp.y + 10f
             )
-            canvas.drawRoundRect(rect, 8f, 8f, labelBgPaint)
+            canvas.drawRoundRect(rect, 8f, 8f, bgPaint)
             canvas.drawText(zone.name, lp.x - textW / 2f, lp.y + 4f, labelPaint)
         }
     }
@@ -301,22 +368,42 @@ class MapView @JvmOverloads constructor(
         val pts = editingVertices.map {
             worldToScreen(it.x.toFloat(), it.y.toFloat())
         }
+        var color = editingZoneColor
+        val fillPaint = Paint().apply {
+            this.color = Color.argb(40, Color.red(color), Color.green(color), Color.blue(color))
+            style = Paint.Style.FILL
+        }
+        val linePaint = Paint().apply {
+            this.color = Color.argb(200, Color.red(color), Color.green(color), Color.blue(color))
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+            pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f, 10f), 0f)
+        }
+        val vtxPaint = Paint().apply {
+            this.color = Color.argb(255, Color.red(color), Color.green(color), Color.blue(color))
+            style = Paint.Style.FILL
+        }
+        val vtxStroke = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+        }
         if (pts.size >= 2) {
             val path = Path()
             path.moveTo(pts.first().x, pts.first().y)
             for (i in 1 until pts.size) path.lineTo(pts[i].x, pts[i].y)
             if (pts.size >= 3) {
                 path.close()
-                canvas.drawPath(path, editingFillPaint)
+                canvas.drawPath(path, fillPaint)
             }
             val dashPath = Path()
             dashPath.moveTo(pts.first().x, pts.first().y)
             for (i in 1 until pts.size) dashPath.lineTo(pts[i].x, pts[i].y)
-            canvas.drawPath(dashPath, editingLinePaint)
+            canvas.drawPath(dashPath, linePaint)
         }
         for (pt in pts) {
-            canvas.drawCircle(pt.x, pt.y, 12f, vertexStrokePaint)
-            canvas.drawCircle(pt.x, pt.y, 8f, vertexPaint)
+            canvas.drawCircle(pt.x, pt.y, 12f, vtxStroke)
+            canvas.drawCircle(pt.x, pt.y, 8f, vtxPaint)
         }
         if (editingZoneName.isNotEmpty() && pts.isNotEmpty()) {
             val textW = labelPaint.measureText(editingZoneName)
@@ -328,7 +415,7 @@ class MapView @JvmOverloads constructor(
                 first.y - 10f
             )
             val bg = Paint().apply {
-                color = Color.argb(180, 76, 175, 80)
+                this.color = Color.argb(180, Color.red(color), Color.green(color), Color.blue(color))
                 style = Paint.Style.FILL
             }
             canvas.drawRoundRect(rect, 8f, 8f, bg)

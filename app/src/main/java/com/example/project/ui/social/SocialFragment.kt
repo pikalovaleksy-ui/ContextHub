@@ -76,7 +76,6 @@ class SocialFragment : Fragment() {
             }
         }
 
-        viewModel.loadMockFriends()
     }
 
     private fun showTouchReceived(name: String) {
@@ -113,7 +112,7 @@ class FriendAdapter(
         val binding = ItemFriendBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
-        return ViewHolder(binding, onSendTouch)
+        return ViewHolder(binding, onSendTouch, onRemove)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -122,7 +121,8 @@ class FriendAdapter(
 
     class ViewHolder(
         private val binding: ItemFriendBinding,
-        private val onSendTouch: (Friend) -> Unit
+        private val onSendTouch: (Friend) -> Unit,
+        private val onRemove: (Friend) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(friend: Friend) {
@@ -137,6 +137,9 @@ class FriendAdapter(
             )
             binding.sendTouchButton.setOnClickListener {
                 onSendTouch(friend)
+            }
+            binding.deleteFriendButton.setOnClickListener {
+                onRemove(friend)
             }
         }
     }
