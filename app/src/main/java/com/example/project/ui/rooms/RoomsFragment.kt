@@ -248,13 +248,20 @@ class RoomAdapter(
                 }
                 for (zone in rowZones) {
                     val bgColor = if (zone.color != 0) zone.color else borderColor
+                    val zoneTextColor = android.graphics.Color.rgb(
+                        (android.graphics.Color.red(bgColor) * 0.5f + 30).toInt().coerceIn(0, 255),
+                        (android.graphics.Color.green(bgColor) * 0.5f + 30).toInt().coerceIn(0, 255),
+                        (android.graphics.Color.blue(bgColor) * 0.5f + 30).toInt().coerceIn(0, 255)
+                    )
                     val switch = SwitchMaterial(ctx).apply {
                         text = zone.name
                         isChecked = zone.enabled
+                        setTextColor(android.content.res.ColorStateList.valueOf(zoneTextColor))
+                        setTypeface(null, android.graphics.Typeface.BOLD)
                         setOnCheckedChangeListener(null)
                         setOnCheckedChangeListener { _, isChecked -> onToggle(zone, isChecked) }
                         layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-                        val pad = (4 * ctx.resources.displayMetrics.density).toInt()
+                        val pad = (10 * ctx.resources.displayMetrics.density).toInt()
                         setPadding(pad, 0, pad, 0)
                     }
                     val card = android.widget.FrameLayout(ctx).apply {
@@ -263,12 +270,12 @@ class RoomAdapter(
                         }
                         background = android.graphics.drawable.GradientDrawable().apply {
                             setColor(android.graphics.Color.argb(
-                                25,
+                                50,
                                 android.graphics.Color.red(bgColor),
                                 android.graphics.Color.green(bgColor),
                                 android.graphics.Color.blue(bgColor)
                             ))
-                            cornerRadius = 12f * ctx.resources.displayMetrics.density
+                            cornerRadius = 1000f * ctx.resources.displayMetrics.density
                         }
                         addView(switch)
                     }
