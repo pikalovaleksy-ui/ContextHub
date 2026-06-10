@@ -71,6 +71,9 @@
     <string name="social_touch_received">Получен Touch от %s</string>
     <string name="social_online">В сети</string>
     <string name="social_offline">Не в сети</string>
+    <string name="social_fill_fields">Заполните имя и ID устройства</string>
+    <string name="social_user_not_found">Пользователь не найден на сервере</string>
+    <string name="social_my_qr_title">Мой QR-код</string>
 
     <!-- Settings -->
     <string name="settings_general">Общие</string>
@@ -85,15 +88,15 @@
     <string name="settings_server_endpoint">Endpoint API</string>
     <string name="settings_voice">Голос</string>
     <string name="settings_voice_wake">Wake-word активация</string>
-    <string name="settings_notifications">Уведомления</string>
-    <string name="settings_notif_zones">События зон</string>
+    <string name="settings_notifications">Управление</string>
+    <string name="settings_notif_zones">Все зоны активны</string>
     <string name="settings_notif_social">Social Touch</string>
     <string name="settings_logout">Выйти</string>
     <string name="settings_logout_confirm">Вы уверены, что хотите выйти?</string>
 
     <!-- Common -->
     <string name="ok">OK</string>
-    <string name="cancel">Отмена</string>
+    <string name="cancel">Назад</string>
     <string name="save">Сохранить</string>
     <string name="delete">Удалить</string>
     <string name="retry">Повторить</string>

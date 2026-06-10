@@ -39,6 +39,7 @@ class RadarRepository @Inject constructor(
     private val mqttManager: MqttManager,
     private val okHttpClient: OkHttpClient
 ) {
+    private val savedZoneStates = mutableMapOf<String, Boolean>()
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
@@ -101,6 +102,49 @@ class RadarRepository @Inject constructor(
 
     suspend fun setZoneEnabled(zoneId: String, enabled: Boolean) {
         zoneDao.setZoneEnabled(zoneId, enabled)
+        toggleZoneOnServer(zoneId, enabled)
+    }
+
+    suspend fun setAllZonesEnabled(enabled: Boolean) {
+        if (enabled) {
+            for ((zoneId, wasEnabled) in savedZoneStates) {
+                zoneDao.setZoneEnabled(zoneId, wasEnabled)
+                toggleZoneOnServer(zoneId, wasEnabled)
+            }
+            savedZoneStates.clear()
+        } else {
+            val zones = zoneDao.getAllZonesSync()
+            savedZoneStates.clear()
+            for (zone in zones) {
+                savedZoneStates[zone.id] = zone.enabled
+            }
+            zoneDao.setAllZonesEnabled(false)
+            toggleAllZonesOnServer(false)
+        }
+    }
+
+    private suspend fun toggleZoneOnServer(zoneId: String, enabled: Boolean) {
+        try {
+            val json = "{\"enabled\":$enabled}"
+            val url = MqttTopics.zoneEnabledUrl(MqttTopics.DEFAULT_SERVER_URL, zoneId)
+            withContext(Dispatchers.IO) {
+                val body = json.toRequestBody("application/json".toMediaType())
+                val request = Request.Builder().url(url).post(body).build()
+                okHttpClient.newCall(request).execute()
+            }
+        } catch (_: Exception) {}
+    }
+
+    private suspend fun toggleAllZonesOnServer(enabled: Boolean) {
+        try {
+            val json = "{\"enabled\":$enabled}"
+            val url = MqttTopics.allZonesEnabledUrl(MqttTopics.DEFAULT_SERVER_URL)
+            withContext(Dispatchers.IO) {
+                val body = json.toRequestBody("application/json".toMediaType())
+                val request = Request.Builder().url(url).post(body).build()
+                okHttpClient.newCall(request).execute()
+            }
+        } catch (_: Exception) {}
     }
 
     suspend fun saveSmartThingsBindings(

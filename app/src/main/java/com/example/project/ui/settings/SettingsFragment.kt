@@ -14,6 +14,7 @@ import com.example.project.R
 import com.example.project.data.remote.mqtt.MqttTopics
 import com.example.project.databinding.FragmentSettingsBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.project.ui.social.SocialViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -23,6 +24,7 @@ class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private val viewModel: SettingsViewModel by viewModels()
+    private var isUpdatingFromCode = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,12 +41,14 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
+                    isUpdatingFromCode = true
                     state.user?.let { user ->
                         binding.nameInput.setText(user.name)
                         binding.emailInput.setText(user.email)
                     }
                     binding.brokerInput.setText(state.brokerUrl)
                     binding.serverInput.setText(state.serverUrl)
+                    isUpdatingFromCode = false
 
                     binding.mqttStatus.text = if (state.mqttConnected)
                         "Подключено" else "Отключено"
@@ -55,6 +59,9 @@ class SettingsFragment : Fragment() {
                             resources.getColor(android.R.color.darker_gray, null)
                     )
                     binding.mqttSwitch.isChecked = state.mqttConnected
+
+                    binding.zoneNotifSwitch.isChecked = state.allZonesEnabled
+                    binding.socialNotifSwitch.isChecked = state.socialTouchEnabled
 
                     if (state.isLoggedOut) {
                         findNavController().navigate(R.id.action_main_to_welcome)
@@ -72,7 +79,9 @@ class SettingsFragment : Fragment() {
 
         binding.mqttSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                val broker = binding.brokerInput.text?.toString()?.trim() ?: MqttTopics.DEFAULT_BROKER_URL
+                val raw = binding.brokerInput.text?.toString()?.trim() ?: MqttTopics.DEFAULT_BROKER_URL
+                val broker = if (raw.contains("://")) raw else "tcp://$raw"
+                viewModel.saveBrokerUrl(broker)
                 viewModel.connectMqtt(broker)
             } else {
                 viewModel.disconnectMqtt()
@@ -81,14 +90,36 @@ class SettingsFragment : Fragment() {
 
         binding.brokerInput.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
-                viewModel.saveBrokerUrl(binding.brokerInput.text?.toString()?.trim() ?: MqttTopics.DEFAULT_BROKER_URL)
+                val raw = binding.brokerInput.text?.toString()?.trim() ?: MqttTopics.DEFAULT_BROKER_URL
+                val broker = if (raw.contains("://")) raw else "tcp://$raw"
+                viewModel.saveBrokerUrl(broker)
             }
         }
+        binding.brokerInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (isUpdatingFromCode) return
+                val raw = s?.toString()?.trim() ?: return
+                if (raw.isNotEmpty()) {
+                    val url = if (raw.contains("://")) raw else "tcp://$raw"
+                    viewModel.saveBrokerUrl(url)
+                }
+            }
+        })
 
         binding.serverInput.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
                 viewModel.saveServerUrl(binding.serverInput.text?.toString()?.trim() ?: MqttTopics.DEFAULT_SERVER_URL)
             }
+        }
+
+        binding.zoneNotifSwitch.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.toggleAllZones(isChecked)
+        }
+
+        binding.socialNotifSwitch.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setSocialTouchEnabled(isChecked)
         }
 
         binding.logoutButton.setOnClickListener {

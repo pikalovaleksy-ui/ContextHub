@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "C:\Users\Admin\AndroidStudioProjects\Project\mock-backend\api_server\main.py", line 1, in <module>
+    from fastapi import FastAPI, HTTPException
+ModuleNotFoundError: No module named 'fastapi'

@@ -210,6 +210,33 @@ async def camera_stream():
 
 # ─── Rooms ───────────────────────────────────────────────────────────────────
 
+class EnabledRequest(BaseModel):
+    enabled: bool
+
+# Stores enabled state for zones not yet persisted in zones.json
+zone_enabled_overrides: dict = {}
+
+@app.post("/api/v1/zones/{zone_id}/enabled")
+async def toggle_zone_enabled(zone_id: str, req: EnabledRequest):
+    zones = load_zones()
+    for z in zones:
+        if z.get("id") == zone_id or z.get("zoneName") == zone_id:
+            z["enabled"] = req.enabled
+            save_zones(zones)
+            zone_enabled_overrides.pop(zone_id, None)
+            return {"status": "success", "zoneId": zone_id, "enabled": req.enabled}
+    zone_enabled_overrides[zone_id] = req.enabled
+    return {"status": "success", "zoneId": zone_id, "enabled": req.enabled, "note": "override"}
+
+@app.post("/api/v1/devices/{device_id}/zones/enabled")
+async def toggle_all_zones_enabled(device_id: str, req: EnabledRequest):
+    zones = load_zones()
+    for z in zones:
+        if z.get("deviceId") == device_id or True:
+            z["enabled"] = req.enabled
+    save_zones(zones)
+    return {"status": "success", "enabled": req.enabled, "count": len(zones)}
+
 class RoomCreate(BaseModel):
     name: str
 
@@ -321,9 +348,81 @@ async def smartthings_command(device_id: str, action: str):
 
 # ─── Social Touch ────────────────────────────────────────────────────────────
 
+class SocialTouchRequest(BaseModel):
+    senderName: str
+    senderDeviceId: str
+
+social_inbox = {}           # target_device_id -> list of TouchEvent
+social_enabled: dict = {}   # device_id -> bool
+
+SOCIAL_ENABLED_FILE = os.path.join(DATA_DIR, "social_enabled.json")
+
+def load_social_enabled():
+    global social_enabled
+    if os.path.exists(SOCIAL_ENABLED_FILE):
+        with open(SOCIAL_ENABLED_FILE, "r") as f:
+            social_enabled = json.load(f)
+    social_enabled.setdefault("mock_friend_1", True)
+
+def save_social_enabled():
+    with open(SOCIAL_ENABLED_FILE, "w") as f:
+        json.dump(social_enabled, f, indent=2)
+
+load_social_enabled()
+
+MOCK_FRIEND = {"deviceId": "mock_friend_1", "name": "Тестовый друг", "email": "friend@mock.ru"}
+MOCK_FRIENDS_LIST = [MOCK_FRIEND]
+
+@app.get("/api/v1/social/user")
+async def find_social_user(deviceId: str = "", name: str = ""):
+    if deviceId:
+        for u in load_users():
+            if u.get("userId") == deviceId:
+                return {"deviceId": u["userId"], "name": u["name"]}
+        for f in MOCK_FRIENDS_LIST:
+            if f["deviceId"] == deviceId:
+                return f
+    if name:
+        for u in load_users():
+            if name.lower() in u.get("name", "").lower():
+                return {"deviceId": u["userId"], "name": u["name"]}
+        for f in MOCK_FRIENDS_LIST:
+            if name.lower() in f["name"].lower():
+                return f
+    raise HTTPException(status_code=404, detail="User not found")
+
 @app.post("/api/v1/social/touch/{target_device_id}")
-async def send_social_touch(target_device_id: str):
-    return {"status": "success", "message": f"Touch sent to {target_device_id}"}
+async def send_social_touch(target_device_id: str, req: Optional[SocialTouchRequest] = None):
+    enabled = social_enabled.get(target_device_id, True)
+    if not enabled:
+        return {"status": "ignored", "message": f"{target_device_id} has social touch disabled"}
+    event = {
+        "senderName": req.senderName if req else "Simulator",
+        "senderDeviceId": req.senderDeviceId if req else "simulator",
+        "timestamp": datetime.now().isoformat()
+    }
+    if target_device_id not in social_inbox:
+        social_inbox[target_device_id] = []
+    social_inbox[target_device_id].append(event)
+    print(f"[Social Touch] {event['senderName']} -> {target_device_id}", flush=True)
+    return {"status": "success", "message": f"Touch from {event['senderName']} sent to {target_device_id}"}
+
+@app.get("/api/v1/social/touch/inbox/{my_device_id}")
+async def get_social_inbox(my_device_id: str):
+    events = social_inbox.pop(my_device_id, [])
+    return {"events": events, "count": len(events)}
+
+@app.post("/api/v1/social/enabled")
+async def set_social_enabled(data: dict):
+    device_id = data.get("deviceId", "default")
+    enabled = data.get("enabled", True)
+    social_enabled[device_id] = enabled
+    save_social_enabled()
+    return {"status": "success", "deviceId": device_id, "enabled": enabled}
+
+@app.get("/api/v1/social/enabled/{device_id}")
+async def get_social_enabled(device_id: str):
+    return {"deviceId": device_id, "enabled": social_enabled.get(device_id, True)}
 
 # ─── Radar Simulator ─────────────────────────────────────────────────────────
 
@@ -653,6 +752,7 @@ def mqtt_publish_loop():
     client = mqtt.Client(client_id="mock_radar_main", protocol=mqtt.MQTTv311)
     client.on_connect = on_mqtt_connect
     client.on_disconnect = on_mqtt_disconnect
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
 
     try:
         print("[MQTT] Connecting to broker.hivemq.com:1883 ...", flush=True)
@@ -668,27 +768,62 @@ def mqtt_publish_loop():
     auto_speed = [0.02, 0.03, 0.015]
 
     while True:
-        if not mqtt_connected:
-            time.sleep(0.5)
-            continue
+        try:
+            if not mqtt_connected:
+                time.sleep(0.5)
+                continue
 
-        # Если от Web UI были данные меньше 2 секунд назад — используем их
-        use_manual = bool(sim_manual_targets) and (time.time() - sim_last_updated) < 2.0
-        time.sleep(0.1 if use_manual else 0.5)
+            # Если от Web UI были данные меньше 2 секунд назад — используем их
+            use_manual = bool(sim_manual_targets) and (time.time() - sim_last_updated) < 2.0
+            time.sleep(0.1 if use_manual else 0.5)
 
-        if use_manual:
-            manual_targets = [
-                {"id": t.get("id", i), "x": t.get("x", 0), "y": t.get("y", 0),
-                 "speed": t.get("speed", 0), "inZone": t.get("inZone", False)}
-                for i, t in enumerate(sim_manual_targets)
-            ]
-            persons = [
-                {"targetId": t["id"], "zones": "WorkZone",
-                 "x": t["x"], "y": t["y"], "speed": t["speed"]}
-                for t in manual_targets if t["inZone"]
-            ]
+            if use_manual:
+                manual_targets = [
+                    {"id": t.get("id", i), "x": t.get("x", 0), "y": t.get("y", 0),
+                     "speed": t.get("speed", 0), "inZone": t.get("inZone", False)}
+                    for i, t in enumerate(sim_manual_targets)
+                ]
+                persons = [
+                    {"targetId": t["id"], "zones": "WorkZone",
+                     "x": t["x"], "y": t["y"], "speed": t["speed"]}
+                    for t in manual_targets if t["inZone"]
+                ]
+                ld2450 = {
+                    "targets": manual_targets,
+                    "zones": [{
+                        "name": "WorkZone",
+                        "vertices": [{"x": -1000, "y": 500}, {"x": 1000, "y": 500},
+                                     {"x": 1000, "y": 1500}, {"x": -1000, "y": 1500}],
+                        "pointCount": 4
+                    }],
+                    "personsInZones": persons
+                }
+                payload = json_lib.dumps(ld2450)
+                client.publish("assistants/1/ld2450", payload)
+                continue
+
+            # auto-generate targets (old simulator style)
+            targets = []
+            for i in range(3):
+                auto_angle[i] += auto_speed[i]
+                x = int(auto_radius[i] * math.cos(auto_angle[i])) + random.randint(-50, 50)
+                y = int(auto_radius[i] * math.sin(auto_angle[i])) + random.randint(-50, 50)
+                speed = int(abs(auto_speed[i]) * auto_radius[i] * 10)
+                in_zone = random.random() < 0.3
+                targets.append({
+                    "id": i + 1, "x": x, "y": y, "speed": speed, "inZone": in_zone
+                })
+
+            persons = []
+            for t in targets:
+                if t["inZone"]:
+                    persons.append({
+                        "targetId": t["id"], "zones": "WorkZone",
+                        "x": t["x"], "y": t["y"], "speed": t["speed"]
+                    })
+
             ld2450 = {
-                "targets": manual_targets,
+                "targets": targets,
                 "zones": [{
                     "name": "WorkZone",
                     "vertices": [{"x": -1000, "y": 500}, {"x": 1000, "y": 500},
@@ -699,40 +834,9 @@ def mqtt_publish_loop():
             }
             payload = json_lib.dumps(ld2450)
             client.publish("assistants/1/ld2450", payload)
-            continue
-
-        # auto-generate targets (old simulator style)
-        targets = []
-        for i in range(3):
-            auto_angle[i] += auto_speed[i]
-            x = int(auto_radius[i] * math.cos(auto_angle[i])) + random.randint(-50, 50)
-            y = int(auto_radius[i] * math.sin(auto_angle[i])) + random.randint(-50, 50)
-            speed = int(abs(auto_speed[i]) * auto_radius[i] * 10)
-            in_zone = random.random() < 0.3
-            targets.append({
-                "id": i + 1, "x": x, "y": y, "speed": speed, "inZone": in_zone
-            })
-
-        persons = []
-        for t in targets:
-            if t["inZone"]:
-                persons.append({
-                    "targetId": t["id"], "zones": "WorkZone",
-                    "x": t["x"], "y": t["y"], "speed": t["speed"]
-                })
-
-        ld2450 = {
-            "targets": targets,
-            "zones": [{
-                "name": "WorkZone",
-                "vertices": [{"x": -1000, "y": 500}, {"x": 1000, "y": 500},
-                             {"x": 1000, "y": 1500}, {"x": -1000, "y": 1500}],
-                "pointCount": 4
-            }],
-            "personsInZones": persons
-        }
-        payload = json_lib.dumps(ld2450)
-        client.publish("assistants/1/ld2450", payload)
+        except Exception as e:
+            print(f"[MQTT] Error in publish loop: {e}", flush=True)
+            time.sleep(1)
 
 threading.Thread(target=mqtt_publish_loop, daemon=True).start()
 

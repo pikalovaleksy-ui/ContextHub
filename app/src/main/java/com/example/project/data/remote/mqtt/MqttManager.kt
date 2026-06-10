@@ -1,22 +1,28 @@
 package com.example.project.data.remote.mqtt
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
-import org.eclipse.paho.client.mqttv3.MqttCallback
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import java.util.UUID
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MqttManager @Inject constructor() {
+class MqttManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private var client: MqttClient? = null
     private val executor = Executors.newSingleThreadExecutor()
@@ -25,57 +31,73 @@ class MqttManager @Inject constructor() {
     private val _connectionState = MutableStateFlow(false)
     val connectionState: StateFlow<Boolean> = _connectionState
 
-    fun connect(
-        brokerUrl: String = MqttTopics.DEFAULT_BROKER_URL,
-        clientId: String = MqttTopics.CLIENT_ID_PREFIX + UUID.randomUUID().toString().take(8)
-    ) {
-        if (_connectionState.value) return
+    private fun getStableClientId(): String {
+        var id = prefs.getString(KEY_CLIENT_ID, null)
+        if (id == null) {
+            id = MqttTopics.CLIENT_ID_PREFIX + java.util.UUID.randomUUID().toString().take(8)
+            prefs.edit().putString(KEY_CLIENT_ID, id).apply()
+        }
+        return id
+    }
 
+    private fun normalizeBrokerUrl(url: String): String {
+        val trimmed = url.trim()
+        if (trimmed.isEmpty()) return MqttTopics.DEFAULT_BROKER_URL
+        if (!trimmed.contains("://")) return "tcp://$trimmed"
+        return trimmed
+    }
+
+    fun connect(brokerUrl: String = MqttTopics.DEFAULT_BROKER_URL) {
+        val normalizedUrl = normalizeBrokerUrl(brokerUrl)
         executor.execute {
             try {
-                // Disconnect any previous client first
                 try {
-                    client?.disconnect()
+                    client?.disconnectForcibly(1000, 0)
                     client?.close()
                 } catch (_: Exception) {}
                 client = null
+                _connectionState.value = false
 
+                val clientId = getStableClientId()
                 val opts = MqttConnectOptions().apply {
                     isAutomaticReconnect = true
-                    isCleanSession = true
+                    isCleanSession = false
                     connectionTimeout = 10
                     keepAliveInterval = 30
                 }
 
-                client = MqttClient(brokerUrl, clientId, MemoryPersistence())
-                client?.connect(opts)
+                val newClient = MqttClient(normalizedUrl, clientId, MemoryPersistence())
+                client = newClient
+                newClient.setCallback(object : MqttCallbackExtended {
+                    override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                        if (this@MqttManager.client !== newClient) return
+                        Log.d(TAG, "connectComplete (reconnect=$reconnect) $serverURI")
+                        _connectionState.value = true
+                        newClient.let { c ->
+                            messageCallbacks.forEach { (topic, _) ->
+                                try { c.subscribe(topic) } catch (_: Exception) {}
+                            }
+                        }
+                    }
 
-                client?.setCallback(object : MqttCallback {
                     override fun connectionLost(cause: Throwable?) {
-                        Log.w(TAG, "MQTT connection lost: ${cause?.message}")
+                        if (this@MqttManager.client !== newClient) return
+                        Log.w(TAG, "connectionLost: ${cause?.message}")
                         _connectionState.value = false
                     }
 
                     override fun messageArrived(topic: String, message: MqttMessage?) {
                         val payload = message?.toString() ?: ""
-                        Log.d(TAG, "MQTT message on $topic: $payload")
-                        val globalKey = "__global__"
+                        Log.d(TAG, "message on $topic")
                         messageCallbacks[topic]?.forEach { it(topic, payload) }
-                        messageCallbacks[globalKey]?.forEach { it(topic, payload) }
+                        messageCallbacks["__global__"]?.forEach { it(topic, payload) }
                     }
 
                     override fun deliveryComplete(token: IMqttDeliveryToken?) {}
                 })
-
-                Log.d(TAG, "MQTT connected to $brokerUrl")
-                _connectionState.value = true
-
-                messageCallbacks.forEach { (topic, _) ->
-                    try { client?.subscribe(topic) } catch (_: Exception) {}
-                }
+                newClient.connect(opts)
             } catch (e: Exception) {
-                Log.e(TAG, "MQTT connection failed: ${e.message}")
-                Log.e(TAG, "MQTT connect error", e)
+                Log.e(TAG, "connect failed: ${e.message}", e)
                 _connectionState.value = false
             }
         }
@@ -93,8 +115,7 @@ class MqttManager @Inject constructor() {
     }
 
     fun subscribe(topic: String, callback: (topic: String, message: String) -> Unit) {
-        val callbacks = messageCallbacks.getOrPut(topic) { mutableListOf() }
-        callbacks.add(callback)
+        messageCallbacks.getOrPut(topic) { mutableListOf() }.add(callback)
         executor.execute {
             try { client?.subscribe(topic) } catch (_: Exception) {}
         }
@@ -112,21 +133,16 @@ class MqttManager @Inject constructor() {
             try {
                 client?.publish(topic, MqttMessage(message.toByteArray()).apply { this.qos = qos })
             } catch (e: MqttException) {
-                Log.e(TAG, "MQTT publish error: ${e.message}")
+                Log.e(TAG, "publish error: ${e.message}")
             }
         }
     }
 
-    fun addGlobalCallback(callback: (topic: String, message: String) -> Unit) {
-        val globalKey = "__global__"
-        messageCallbacks.getOrPut(globalKey) { mutableListOf() }.add(callback)
-    }
-
-    fun removeGlobalCallback(callback: (topic: String, message: String) -> Unit) {
-        messageCallbacks.forEach { (_, callbacks) -> callbacks.remove(callback) }
-    }
+    fun isConnected(): Boolean = _connectionState.value
 
     companion object {
         private const val TAG = "MqttManager"
+        private const val PREFS_NAME = "contexthub_mqtt"
+        private const val KEY_CLIENT_ID = "stable_client_id"
     }
 }

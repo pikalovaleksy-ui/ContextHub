@@ -19,4 +19,22 @@ object MqttTopics {
 
     fun zoneBindingsUrl(serverUrl: String, zoneId: String): String =
         "$serverUrl/api/v1/zones/$zoneId/bindings"
+
+    fun zoneEnabledUrl(serverUrl: String, zoneId: String): String =
+        "$serverUrl/api/v1/zones/$zoneId/enabled"
+
+    fun allZonesEnabledUrl(serverUrl: String, deviceId: String = DEVICE_ID): String =
+        "$serverUrl/api/v1/devices/$deviceId/zones/enabled"
+
+    fun socialTouchUrl(serverUrl: String, targetDeviceId: String): String =
+        "$serverUrl/api/v1/social/touch/$targetDeviceId"
+
+    fun socialInboxUrl(serverUrl: String, myDeviceId: String): String =
+        "$serverUrl/api/v1/social/touch/inbox/$myDeviceId"
+
+    fun socialEnabledUrl(serverUrl: String): String =
+        "$serverUrl/api/v1/social/enabled"
+
+    fun socialUserUrl(serverUrl: String): String =
+        "$serverUrl/api/v1/social/user"
 }

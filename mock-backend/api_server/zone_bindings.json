@@ -5,5 +5,12 @@
       "action": "off",
       "extraParams": {}
     }
+  ],
+  "20792927-2be9-4182-a1a7-9ff5ad2f1ff4": [
+    {
+      "deviceId": "st_002",
+      "action": "off",
+      "extraParams": {}
+    }
   ]
 }

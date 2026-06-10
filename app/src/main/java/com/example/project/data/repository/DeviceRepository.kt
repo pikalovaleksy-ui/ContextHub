@@ -49,7 +49,7 @@ class DeviceRepository @Inject constructor(
     suspend fun connectMqtt(brokerUrl: String = MqttTopics.DEFAULT_BROKER_URL) {
         val device = deviceDao.getDeviceSync()
         if (device != null) {
-            mqttManager.connect(brokerUrl, MqttTopics.CLIENT_ID_PREFIX + device.id)
+            mqttManager.connect(brokerUrl)
         }
     }
 

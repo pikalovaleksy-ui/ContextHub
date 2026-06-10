@@ -153,7 +153,18 @@
         android:id="@+id/addFriendFragment"
         android:name="com.example.project.ui.social.AddFriendFragment"
         android:label="Add Friend"
-        tools:layout="@layout/fragment_add_friend" />
+        tools:layout="@layout/fragment_add_friend">
+        <action
+            android:id="@+id/action_addFriend_to_scanQr"
+            app:destination="@id/scanQrFragment" />
+    </fragment>
+
+    <!-- Scan QR -->
+    <fragment
+        android:id="@+id/scanQrFragment"
+        android:name="com.example.project.ui.social.ScanQrFragment"
+        android:label="Scan QR"
+        tools:layout="@layout/fragment_scan_qr" />
 
     <!-- Settings -->
     <fragment

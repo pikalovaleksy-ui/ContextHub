@@ -143,7 +143,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="MQTT Broker URL (ws://)"
+                    android:hint="MQTT Broker URL (tcp://)"
                     app:boxStrokeColor="@color/purple_primary">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -152,7 +152,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="textUri"
                         android:maxLines="1"
-                        android:text="ws://192.168.1.100:9001" />
+                        android:text="tcp://broker.hivemq.com:1883" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout

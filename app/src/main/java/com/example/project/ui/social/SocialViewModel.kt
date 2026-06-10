@@ -14,7 +14,8 @@ import javax.inject.Inject
 
 data class SocialUiState(
     val touchReceived: String? = null,
-    val touchSent: Boolean = false
+    val touchSent: Boolean = false,
+    val socialEnabled: Boolean = true
 )
 
 @HiltViewModel
@@ -29,14 +30,17 @@ class SocialViewModel @Inject constructor(
     val uiState: StateFlow<SocialUiState> = _uiState
 
     init {
+        socialRepository.startInboxPolling(viewModelScope)
         viewModelScope.launch {
             socialRepository.touchReceived.collect { event ->
                 if (event != null) {
-                    _uiState.value = SocialUiState(
-                        touchReceived = event.friendName
-                    )
+                    _uiState.value = _uiState.value.copy(touchReceived = event.friendName)
                 }
             }
+        }
+        viewModelScope.launch {
+            val enabled = socialRepository.checkSocialEnabled()
+            _uiState.value = _uiState.value.copy(socialEnabled = enabled)
         }
     }
 
@@ -53,16 +57,40 @@ class SocialViewModel @Inject constructor(
     }
 
     fun sendTouch(friend: Friend) {
-        val name = "Я"
-        socialRepository.sendTouch(friend.deviceId, name)
-        _uiState.value = SocialUiState(touchSent = true)
+        if (!_uiState.value.socialEnabled) return
+        viewModelScope.launch {
+            val name = "Я"
+            socialRepository.sendTouch(friend.deviceId, name)
+            _uiState.value = _uiState.value.copy(touchSent = true)
+        }
     }
 
     fun clearTouchReceived() {
-        _uiState.value = SocialUiState()
+        _uiState.value = SocialUiState(socialEnabled = _uiState.value.socialEnabled)
+    }
+
+    fun setSocialEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(socialEnabled = enabled)
+        viewModelScope.launch {
+            socialRepository.setSocialEnabled(enabled)
+        }
     }
 
     fun getOwnDeviceId(): String = socialRepository.getOwnDeviceId()
+
+    fun lookUpAndAddFriend(deviceId: String, name: String, callback: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val existing = socialRepository.findUserOnServer(deviceId)
+            if (existing != null) {
+                socialRepository.addFriend(existing.name, existing.deviceId)
+                callback(true)
+            } else {
+                // fallback: add with whatever name user typed
+                socialRepository.addFriend(name, deviceId)
+                callback(true)
+            }
+        }
+    }
 
     fun loadMockFriends() {
         viewModelScope.launch {

@@ -38,9 +38,15 @@ interface ZoneDao {
     @Query("DELETE FROM zones WHERE roomId = :roomId")
     suspend fun deleteZonesByRoomId(roomId: String)
 
+    @Query("SELECT * FROM zones")
+    suspend fun getAllZonesSync(): List<ZoneEntity>
+
     @Query("SELECT * FROM zones WHERE enabled = 1")
     suspend fun getEnabledZones(): List<ZoneEntity>
 
     @Query("UPDATE zones SET enabled = :enabled WHERE id = :zoneId")
     suspend fun setZoneEnabled(zoneId: String, enabled: Boolean)
+
+    @Query("UPDATE zones SET enabled = :enabled")
+    suspend fun setAllZonesEnabled(enabled: Boolean)
 }
